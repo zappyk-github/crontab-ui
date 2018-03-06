@@ -82,7 +82,7 @@ But make sure to take a backup before importing.
 ![logs](https://github.com/alseambusher/crontab-ui/raw/gh-pages/screenshots/log.gif)
 
 ### Donate
-Like the project? [Buy me a coffee](paypal.me/CarloZappacosta)!
+Like the project? [Buy me a coffee](https://www.paypal.me/CarloZappacosta)!
 
 ### Contribute
 Fork Crontab UI and contribute to it. Pull requests are encouraged.
