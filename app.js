@@ -1,11 +1,12 @@
 /*jshint esversion: 6*/
 var express = require('express');
-var app = express();
 var auth = require('http-auth');
 var https = require('https');
+var moment = require('moment');
 var crontab = require("./crontab");
 var restore = require("./restore");
-var moment = require('moment');
+var pjson = require('./package.json');
+var app = express();
 
 var path = require('path');
 var mime = require('mime-types');
@@ -259,7 +260,7 @@ if (process.argv.includes("--https")){
 // app listen on port HTTPS
 //server.listen(app.get('https_port'), app.get('https_host'), function() {
 server.listen(app.get('port'), app.get('host'), function() {
-  console.log("Node version:", process.versions.node);
+  console.log("[NodeJS version: " + process.versions.node + "]");
   fs.access(__dirname + "/crontabs/", fs.W_OK, function(err) {
     if(err){
       console.error("Write access to", __dirname + "/crontabs/", "DENIED.");
@@ -298,7 +299,7 @@ server.listen(app.get('port'), app.get('host'), function() {
     crontab.reload_db();
   }
 // print on console host and port to connect
-  console.log("Crontab UI is running at " + proto + "://" + app.get('host') + ":" + app.get('port'));
+  console.log("Crontab UI (version: " + pjson.version + ") is running at " + proto + "://" + app.get('host') + ":" + app.get('port'));
 });
 
 // post logout
