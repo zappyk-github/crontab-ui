@@ -30,6 +30,7 @@ app.use(express.static(__dirname + '/public'));
 app.use(express.static(__dirname + '/public/css'));
 app.use(express.static(__dirname + '/public/js'));
 app.use(express.static(__dirname + '/config'));
+app.use('/favicon.ico', express.static(__dirname + '/public/images/crontab-ui.ico'));
 app.set('views', __dirname + '/views');
 
 // set static users

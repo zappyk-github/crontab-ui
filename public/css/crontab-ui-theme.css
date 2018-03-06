@@ -7,3 +7,7 @@ textarea#env_vars {
 span#username {
 	float: right;
 }
+
+ul#fork_me {
+	display: none;
+}
