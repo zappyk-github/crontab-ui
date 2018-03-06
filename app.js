@@ -44,32 +44,14 @@ var basic = auth.basic({
 	callback(auth_users[username] == password);
 });
 
-// create middleware that can be used to protect routes with basic auth
-var authMiddleware = auth.connect(basic);
-
-// create HTTPS_CERT and HTTPS_KEY: openssl req -x509 -nodes -days  365 -newkey rsa:2048 -keyout $HTTPS_KEY.key -out $HTTPS_CERT.crt
-//                                  openssl genrsa -out $HTTPS_KEY.ca_key 2048
-//                                  openssl req -x509 -nodes -days 1024 -new -key $HTTPS_KEY.ca_key -sha256 -out $HTTPS_CA_1.pem
-// set files ca/cert/key for https
-app.set('https_ca_bundlecert_1', (process.env.HTTPS_CA_1 || ''));
-app.set('https_ca_cert', (process.env.HTTPS_CERT || ''));
-app.set('https_ca_key', (process.env.HTTPS_KEY || ''));
-app.set('https_host', (process.env.HTTPS_HOST || '127.0.0.1'));
-app.set('https_port', (process.env.HTTPS_PORT || 9000));
-// set options https
-var options = {
-//	ca: [fs.readFileSync(app.get('https_ca_bundlecert_1'), fs.readFileSync(PATH_TO_BUNDLE_CERT_2)],
-//	ca: [fs.readFileSync(app.get('https_ca_bundlecert_1')],
-	cert: fs.readFileSync(app.get('https_ca_cert')),
-	key: fs.readFileSync(app.get('https_ca_key'))
-};
-
-var server = https.createServer(options, app);
 // set host to 127.0.0.1 or the value set by environment var HOST
 app.set('host', (process.env.HOST || '127.0.0.1'));
 
 // set port to 8000 or the value set by environment var PORT
 app.set('port', (process.env.PORT || 8000));
+
+// create middleware that can be used to protect routes with basic auth
+var authMiddleware = auth.connect(basic);
 
 // root page handler
 //app.get(routes.root, function(req, res) {
@@ -251,10 +233,31 @@ process.on('SIGTERM', function() {
   process.exit();
 })
 
+var server = app;
+var proto = 'http';
+if (process.argv.includes("--https")){
+  // create HTTPS_CERT and HTTPS_KEY: openssl req -x509 -nodes -days  365 -newkey rsa:2048 -keyout $HTTPS_KEY.key -out $HTTPS_CERT.crt
+  //                                  openssl genrsa -out $HTTPS_KEY.ca_key 2048
+  //                                  openssl req -x509 -nodes -days 1024 -new -key $HTTPS_KEY.ca_key -sha256 -out $HTTPS_CA_1.pem
+  // set files ca/cert/key for https
+  app.set('https_ca_bundlecert_1', (process.env.HTTPS_CA_1 || ''));
+  app.set('https_ca_cert', (process.env.HTTPS_CERT || ''));
+  app.set('https_ca_key', (process.env.HTTPS_KEY || ''));
+  // set options https
+  var options = {
+  //	ca: [fs.readFileSync(app.get('https_ca_bundlecert_1'), fs.readFileSync(PATH_TO_BUNDLE_CERT_2)],
+  //	ca: [fs.readFileSync(app.get('https_ca_bundlecert_1')],
+  	cert: fs.readFileSync(app.get('https_ca_cert')),
+	key: fs.readFileSync(app.get('https_ca_key'))
+  };
+  server = https.createServer(options, app);
+  proto = 'https';
+}
 // app listen on port HTTP
 //app.listen(app.get('port'), app.get('host'), function() {
 // app listen on port HTTPS
-server.listen(app.get('https_port'), app.get('https_host'), function() {
+//server.listen(app.get('https_port'), app.get('https_host'), function() {
+server.listen(app.get('port'), app.get('host'), function() {
   console.log("Node version:", process.versions.node);
   fs.access(__dirname + "/crontabs/", fs.W_OK, function(err) {
     if(err){
@@ -294,8 +297,7 @@ server.listen(app.get('https_port'), app.get('https_host'), function() {
     crontab.reload_db();
   }
 // print on console host and port to connect
-//console.log("Crontab UI is running at http://" + app.get('host') + ":" + app.get('port'));
-  console.log("Crontab UI is running at https://" + app.get('https_host') + ":" + app.get('https_port'));
+  console.log("Crontab UI is running at " + proto + "://" + app.get('host') + ":" + app.get('port'));
 });
 
 // post logout

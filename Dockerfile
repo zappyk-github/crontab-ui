@@ -1,11 +1,11 @@
-# docker run -d -p 8000:8000 alseambusher/crontab-ui
+# docker run -d -p 8000:8000 zappyk-github/crontab-ui
 FROM alpine:3.5
 
 RUN   mkdir /crontab-ui; touch /etc/crontabs/root; chmod +x /etc/crontabs/root
 
 WORKDIR /crontab-ui
 
-LABEL maintainer "@alseambusher"
+LABEL maintainer "@zappyk-github"
 LABEL description "Crontab-UI docker"
 
 RUN   apk --no-cache add \
