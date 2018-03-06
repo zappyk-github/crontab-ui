@@ -1,6 +1,8 @@
 /*jshint esversion: 6*/
 var express = require('express');
 var app = express();
+var auth = require('http-auth');
+var https = require('https');
 var crontab = require("./crontab");
 var restore = require("./restore");
 var moment = require('moment');
@@ -30,6 +32,39 @@ app.use(express.static(__dirname + '/public/js'));
 app.use(express.static(__dirname + '/config'));
 app.set('views', __dirname + '/views');
 
+// set static users
+var auth_users = require("./config/auth_users").auth_users;
+
+// configure basic auth
+var basic = auth.basic({
+    realm: 'SUPER SECRET STUFF'
+}, function(username, password, callback) {
+	app.set('username', username);
+	console.log("Login username " + username)
+	callback(auth_users[username] == password);
+});
+
+// create middleware that can be used to protect routes with basic auth
+var authMiddleware = auth.connect(basic);
+
+// create HTTPS_CERT and HTTPS_KEY: openssl req -x509 -nodes -days  365 -newkey rsa:2048 -keyout $HTTPS_KEY.key -out $HTTPS_CERT.crt
+//                                  openssl genrsa -out $HTTPS_KEY.ca_key 2048
+//                                  openssl req -x509 -nodes -days 1024 -new -key $HTTPS_KEY.ca_key -sha256 -out $HTTPS_CA_1.pem
+// set files ca/cert/key for https
+app.set('https_ca_bundlecert_1', (process.env.HTTPS_CA_1 || ''));
+app.set('https_ca_cert', (process.env.HTTPS_CERT || ''));
+app.set('https_ca_key', (process.env.HTTPS_KEY || ''));
+app.set('https_host', (process.env.HTTPS_HOST || '127.0.0.1'));
+app.set('https_port', (process.env.HTTPS_PORT || 9000));
+// set options https
+var options = {
+//	ca: [fs.readFileSync(app.get('https_ca_bundlecert_1'), fs.readFileSync(PATH_TO_BUNDLE_CERT_2)],
+//	ca: [fs.readFileSync(app.get('https_ca_bundlecert_1')],
+	cert: fs.readFileSync(app.get('https_ca_cert')),
+	key: fs.readFileSync(app.get('https_ca_key'))
+};
+
+var server = https.createServer(options, app);
 // set host to 127.0.0.1 or the value set by environment var HOST
 app.set('host', (process.env.HOST || '127.0.0.1'));
 
@@ -37,8 +72,10 @@ app.set('host', (process.env.HOST || '127.0.0.1'));
 app.set('port', (process.env.PORT || 8000));
 
 // root page handler
-app.get(routes.root, function(req, res) {
-  // reload the database before rendering
+//app.get(routes.root, function(req, res) {
+// root page handler with auth Middleware
+app.get(routes.root, authMiddleware, function(req, res) {
+	// reload the database before rendering
 	crontab.reload_db();
 	// send all the required parameters
 	crontab.crontabs( function(docs){
@@ -47,7 +84,8 @@ app.get(routes.root, function(req, res) {
 			crontabs : JSON.stringify(docs),
 			backups : crontab.get_backup_names(),
 			env : crontab.get_env(),
-      moment: moment
+			moment: moment,
+			username: app.get('username')
 		});
 	});
 });
@@ -85,6 +123,22 @@ app.post(routes.start, function(req, res) {
 app.post(routes.remove, function(req, res) {
 	crontab.remove(req.body._id);
 	res.end();
+});
+
+// run a job
+/*** Solution 1 ***
+app.get(routes.run_job, function(req, res) {
+	console.log("Run[ " + req.query.job_id + " ]=[ " + req.query.job_command + " ]");
+	crontab.run_job(req.query.job_id, req.query.job_env_vars, req.query.job_command, req.query.mailing);
+	res.end();
+});
+*/
+/*** Solution 2 ***/
+app.post(routes.run_job, function(req, res) {
+	crontab.run_job(req.body._id, function(err) {
+		if (err) console.error(err);
+		else res.end();
+	});
 });
 
 // set crontab. Needs env_vars to be passed
@@ -197,7 +251,10 @@ process.on('SIGTERM', function() {
   process.exit();
 })
 
-app.listen(app.get('port'), app.get('host'), function() {
+// app listen on port HTTP
+//app.listen(app.get('port'), app.get('host'), function() {
+// app listen on port HTTPS
+server.listen(app.get('https_port'), app.get('https_host'), function() {
   console.log("Node version:", process.versions.node);
   fs.access(__dirname + "/crontabs/", fs.W_OK, function(err) {
     if(err){
@@ -236,5 +293,13 @@ app.listen(app.get('port'), app.get('host'), function() {
 
     crontab.reload_db();
   }
-	console.log("Crontab UI is running at http://" + app.get('host') + ":" + app.get('port'));
+// print on console host and port to connect
+//console.log("Crontab UI is running at http://" + app.get('host') + ":" + app.get('port'));
+  console.log("Crontab UI is running at https://" + app.get('https_host') + ":" + app.get('https_port'));
+});
+
+// post logout
+app.post(routes.logout, function(req, res) {
+	console.log("Logout username " + app.get('username') + " browser " + req.body.browser_name);
+	res.end();
 });

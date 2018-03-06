@@ -1,0 +1,9 @@
+textarea#env_vars {
+	height: 20em;
+	font-size: small;
+	font-family: monospace;
+}
+
+span#username {
+	float: right;
+}

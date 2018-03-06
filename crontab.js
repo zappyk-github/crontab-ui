@@ -4,6 +4,8 @@ var Datastore = require('nedb');
 var path = require("path");
 var db = new Datastore({ filename: __dirname + '/crontabs/crontab.db' });
 var cronPath = "/tmp";
+var progNode = "/usr/local/bin/node";
+    progNode = "/usr/bin/node";
 
 if(process.env.CRON_PATH !== undefined) {
 	console.log(`Path to crond files set using env variables ${process.env.CRON_PATH}`);
@@ -90,7 +92,11 @@ exports.set_crontab = function(env_vars, callback){
 				if(tab.command[tab.command.length-1] != ";") // add semicolon
 					tab.command +=";";
 
+				/*** replaced ***
 				crontab_string += tab.schedule + " ({ " + tab.command + " } | tee " + stdout + ") 3>&1 1>&2 2>&3 | tee " + stderr;
+				*/
+			//	crontab_string += tab.schedule + "((( " + tab.command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 | tee " + stdout + ") > " + log_file + " 2>&1";
+				crontab_string += tab.schedule + " (( " + tab.command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 | tee " + stdout;
 
 				if (tab.logging && tab.logging == "true") {
 					crontab_string += "; if test -f " + stderr +
@@ -106,7 +112,8 @@ exports.set_crontab = function(env_vars, callback){
 				}
 
 				if (tab.mailing && JSON.stringify(tab.mailing) != "{}"){
-					crontab_string += "; /usr/local/bin/node " + __dirname + "/bin/crontab-ui-mailer.js " + tab._id + " " + stdout + " " + stderr;
+				//	crontab_string += "; /usr/local/bin/node " + __dirname + "/bin/crontab-ui-mailer.js " + tab._id + " " + stdout + " " + stderr;
+					crontab_string += "; " + progNode + " " + __dirname + "/bin/crontab-ui-mailer.js " + tab._id + " " + stdout + " " + stderr;
 				}
 
 				crontab_string += "\n";
@@ -135,6 +142,69 @@ exports.set_crontab = function(env_vars, callback){
 			});
 		});
 	});
+};
+
+// run a job
+/*** Solution 1 ***
+exports.run_job = function(job_id, job_env_vars, job_command, job_mailing, callback){
+		var stderr = path.join(cronPath, job_id + "-runjob.stderr");
+		var stdout = path.join(cronPath, job_id + "-runjob.stdout");
+		var logjob = path.join(cronPath, job_id + "-runjob.log");
+		var runjob = path.join(cronPath, job_id + "-runjob.sh");
+		var job_file_string = "";
+		if (job_env_vars) {
+			job_file_string = job_env_vars + "\n\n";
+		}
+		job_file_string += "#id: " + job_id + "\n";
+		job_file_string += "set -o pipefail\n";
+	//	job_file_string += "(( ( " + job_command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 | tee " + stdout + ") > " + logjob + " 2>&1\n";
+		job_file_string += " ( ( " + job_command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 | tee " + stdout + "\n";
+		job_file_string += "rt=$?\n";
+		job_file_string += "\n";
+		if (job_mailing && JSON.stringify(job_mailing) != "{}"){
+			job_file_string += progNode + " " + __dirname + "/bin/crontab-ui-mailer.js " + job_id + " " + stdout + " " + stderr;
+			job_file_string += "\n";
+		}
+		job_file_string += "exit $rt\n";
+		fs.writeFile(runjob, job_file_string, function(err) {
+			if (err) return callback(err);
+		});
+};
+*/
+/*** Solution 2 ***/
+exports.run_job = function(_id, callback){
+		var job_id = _id;
+		exports.get_crontab(job_id, function(job_db) {
+			var job_env_vars = exports.get_env();
+			var job_command  = job_db.command;
+			var job_mailing  = job_db.mailing;
+                        
+			var stderr = path.join(cronPath, job_id + "-runjob.stderr");
+			var stdout = path.join(cronPath, job_id + "-runjob.stdout");
+			var logjob = path.join(cronPath, job_id + "-runjob.log");
+			var runjob = path.join(cronPath, job_id + "-runjob.sh");
+
+			var job_file_string = "";
+			if (job_env_vars) {
+				job_file_string = job_env_vars + "\n\n";
+			}
+			job_file_string += "#id: " + job_id + "\n";
+			job_file_string += "set -o pipefail\n";
+		//	How do I save or redirect stdout and stderr into different files?
+		//		https://www.cyberciti.biz/faq/saving-stdout-stderr-into-separate-files/
+		//	job_file_string += "(( ( " + job_command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 1>&2 | tee " + stdout + ") > " + logjob + " 2>&1\n";
+			job_file_string += " ( ( " + job_command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 1>&2 | tee " + stdout + "\n";
+			job_file_string += "rt=$?\n";
+			job_file_string += "\n";
+			if (job_mailing && JSON.stringify(job_mailing) != "{}"){
+				job_file_string += progNode + " " + __dirname + "/bin/crontab-ui-mailer.js " + job_id + " " + stdout + " " + stderr;
+				job_file_string += "\n";
+			}
+			job_file_string += "exit $rt\n";
+			fs.writeFile(runjob, job_file_string, function(err) {
+				if (err) return callback(err);
+			});
+		});
 };
 
 exports.get_backup_names = function(){
@@ -202,6 +272,7 @@ exports.import_crontab = function(){
 			if(command && schedule && is_valid){
 				var name = namePrefix + '_' + index;
 
+				/*** replaced ***
 				db.findOne({ command: command, schedule: schedule }, function(err, doc) {
 					if(err) {
 						throw err;
@@ -213,6 +284,27 @@ exports.import_crontab = function(){
 						doc.command = command;
 						doc.schedule = schedule;
 						exports.update(doc);
+					}
+				});
+				*/
+				db.find({}).exec(function(err, docs){
+					var find_update = false;
+					for(var i=0; i<docs.length; i++){
+						if(command.indexOf(docs[i].command) >= 0) {
+							find_update = true;
+							db.findOne({ command: command }, function(err, doc) {
+								if(err) {
+									throw err;
+								}
+								if(doc){
+									doc.schedule = schedule;
+									exports.update(doc);
+								}
+							});
+						}
+					}
+					if(!find_update){
+						exports.create_new(name, command, schedule, null);
 					}
 				});
 			}
