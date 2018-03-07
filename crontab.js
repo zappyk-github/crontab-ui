@@ -1,11 +1,14 @@
 /*jshint esversion: 6*/
+// include the constants
+var constants = require("./constants").constants;
+
 //load database
 var Datastore = require('nedb');
 var path = require("path");
 var db = new Datastore({ filename: __dirname + '/crontabs/crontab.db' });
 var cronPath = "/tmp";
-var progNode = "/usr/local/bin/node";
-    progNode = "/usr/bin/node";
+var progNode = constants.prog_node;
+
 
 if(process.env.CRON_PATH !== undefined) {
 	console.log(`Path to crond files set using env variables ${process.env.CRON_PATH}`);
@@ -120,27 +123,30 @@ exports.set_crontab = function(env_vars, callback){
 			}
 		});
 
-		fs.writeFile(exports.env_file, env_vars, function(err) {
-			if (err) callback(err);
-			// In docker we're running as the root user, so we need to write the file as root and not crontab
-			var fileName = "crontab"
-			if(process.env.CRON_IN_DOCKER !== undefined) {
-				fileName = "root"
-			}
-			fs.writeFile(path.join(cronPath, fileName), crontab_string, function(err) {
-				if (err) return callback(err);
-				/// In docker we're running crond using busybox implementation of crond
-				/// It is launched as part of the container startup process, so no need to run it again
-				if(process.env.CRON_IN_DOCKER === undefined) {
-					exec("crontab " + path.join(cronPath, "crontab"), function(err) {
-						if (err) return callback(err);
-						else callback();
-					});
-				} else {
-					callback();
+		if (process.argv.includes("--in-docker")){
+			fs.writeFile(exports.env_file, env_vars, function(err) {
+				if (err) callback(err);
+				// In docker we're running as the root user, so we need to write the file as root and not crontab
+			//	var fileName = "crontab"
+				var fileName = [constants.name, constants.port].join('-');
+				if(process.env.CRON_IN_DOCKER !== undefined) {
+					fileName = "root"
 				}
+				fs.writeFile(path.join(cronPath, fileName), crontab_string, function(err) {
+					if (err) return callback(err);
+					/// In docker we're running crond using busybox implementation of crond
+					/// It is launched as part of the container startup process, so no need to run it again
+					if(process.env.CRON_IN_DOCKER === undefined) {
+						exec("crontab " + path.join(cronPath, "crontab"), function(err) {
+							if (err) return callback(err);
+							else callback();
+						});
+					} else {
+						callback();
+					}
+				});
 			});
-		});
+		}
 	});
 };
 

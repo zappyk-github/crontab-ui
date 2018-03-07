@@ -5,13 +5,15 @@ var https = require('https');
 var moment = require('moment');
 var crontab = require("./crontab");
 var restore = require("./restore");
-var pjson = require('./package.json');
 var app = express();
 
 var path = require('path');
 var mime = require('mime-types');
 var fs = require('fs');
 var busboy = require('connect-busboy'); // for file upload
+
+// include the constants
+var constants = require("./constants").constants;
 
 // include the routes
 var routes = require("./routes").routes;
@@ -35,7 +37,7 @@ app.use('/favicon.ico', express.static(__dirname + '/public/images/crontab-ui.ic
 app.set('views', __dirname + '/views');
 
 // set static users
-var auth_users = require("./config/auth_users").auth_users;
+var auth_users = require('./config/' + (process.env.CUI_AUTH_USERS || constants.users)).auth_users;
 
 // configure basic auth
 var basic = auth.basic({
@@ -47,10 +49,10 @@ var basic = auth.basic({
 });
 
 // set host to 127.0.0.1 or the value set by environment var HOST
-app.set('host', (process.env.HOST || '127.0.0.1'));
+app.set('host', (process.env.CUI_HOST || constants.host));
 
 // set port to 8000 or the value set by environment var PORT
-app.set('port', (process.env.PORT || 8000));
+app.set('port', (process.env.CUI_PORT || constants.port));
 
 // create middleware that can be used to protect routes with basic auth
 var authMiddleware = auth.connect(basic);
@@ -214,7 +216,7 @@ app.use(function(err, req, res, next) {
 
 	data.message = err.message || 'Internal Server Error';
 
-	if (process.env.NODE_ENV === 'development' && err.stack) {
+	if (process.env.CUI_NODE_ENV === 'development' && err.stack) {
 		data.stack = err.stack;
 	}
 
@@ -242,9 +244,9 @@ if (process.argv.includes("--https")){
   //                                  openssl genrsa -out $HTTPS_KEY.ca_key 2048
   //                                  openssl req -x509 -nodes -days 1024 -new -key $HTTPS_KEY.ca_key -sha256 -out $HTTPS_CA_1.pem
   // set files ca/cert/key for https
-  app.set('https_ca_bundlecert_1', (process.env.HTTPS_CA_1 || ''));
-  app.set('https_ca_cert', (process.env.HTTPS_CERT || ''));
-  app.set('https_ca_key', (process.env.HTTPS_KEY || ''));
+  app.set('https_ca_bundlecert_1', (process.env.CUI_HTTPS_CA_1 || ''));
+  app.set('https_ca_cert', (process.env.CUI_HTTPS_CERT || ''));
+  app.set('https_ca_key', (process.env.CUI_HTTPS_KEY || ''));
   // set options https
   var options = {
   //	ca: [fs.readFileSync(app.get('https_ca_bundlecert_1'), fs.readFileSync(PATH_TO_BUNDLE_CERT_2)],
@@ -299,7 +301,7 @@ server.listen(app.get('port'), app.get('host'), function() {
     crontab.reload_db();
   }
 // print on console host and port to connect
-  console.log("Crontab UI (version: " + pjson.version + ") is running at " + proto + "://" + app.get('host') + ":" + app.get('port'));
+  console.log("Crontab UI (version: " + constants.version + ") is running at " + proto + "://" + app.get('host') + ":" + app.get('port'));
 });
 
 // post logout

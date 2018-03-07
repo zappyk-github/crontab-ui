@@ -29,7 +29,7 @@ Get latest `node` from [here](https://nodejs.org/en/download/current/). Then,
 
 If you need to set/use an alternative host or port, you may do so by setting an environment variable before starting the process:
 
-    HOST=0.0.0.0 PORT=9000 crontab-ui
+    CUI_HOST=0.0.0.0 CUI_PORT=9000 crontab-ui
     
 If you need to use protocol https, first create files CA/CRT/KEY using this command:
 
@@ -37,7 +37,11 @@ If you need to use protocol https, first create files CA/CRT/KEY using this comm
 
 then set/use an environment variable before starting the process with parameter https:
 
-    HTTPS_CERT=/path/file.crt HTTPS_KEY=/path/file.key crontab-ui --https
+    CUI_HTTPS_CERT=/path/file.crt CUI_HTTPS_KEY=/path/file.key crontab-ui --https
+
+On deafult, you set accounts on file `config/auth_users.js`, but if you want pass another file try in the same directory:
+
+    CUI_AUTH_USERS=auth_users_custom crontab-ui
 
 Also, you may have to **set permissions** for your `node_modules` folder. Refer [this](https://docs.npmjs.com/getting-started/fixing-npm-permissions).
 
@@ -51,7 +55,7 @@ Setting up with docker:
 git clone https://github.com/zappyk-github/crontab-ui.git
 cd crontab-ui
 docker build -t zappyk-github/crontab-ui .
-docker run -d -p 8000:8000 zappyk-github/crontab-ui
+docker run -d -p 8000:8000 zappyk-github/crontab-ui --in-docker
 ```
     
 ## Resources
