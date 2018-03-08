@@ -151,7 +151,7 @@ exports.set_crontab = function(env_vars, callback){
 
 // run a job
 /*** Solution 1 ***
-exports.run_job = function(job_id, job_env_vars, job_command, job_mailing, callback){
+exports.run_job = function(job_id, job_env_vars, job_command, job_mailing, job_name, callback){
 		var stderr = path.join(cronPath, job_id + "-runjob.stderr");
 		var stdout = path.join(cronPath, job_id + "-runjob.stdout");
 		var logjob = path.join(cronPath, job_id + "-runjob.log");
@@ -160,7 +160,7 @@ exports.run_job = function(job_id, job_env_vars, job_command, job_mailing, callb
 		if (job_env_vars) {
 			job_file_string = job_env_vars + "\n\n";
 		}
-		job_file_string += "#id: " + job_id + "\n";
+		job_file_string += "#id: " + job_id + " | " + job_name + "\n";
 		job_file_string += "set -o pipefail\n";
 	//	job_file_string += "(( ( " + job_command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 | tee " + stdout + ") > " + logjob + " 2>&1\n";
 		job_file_string += " ( ( " + job_command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 | tee " + stdout + "\n";
@@ -178,23 +178,24 @@ exports.run_job = function(job_id, job_env_vars, job_command, job_mailing, callb
 */
 /*** Solution 2 ***/
 exports.run_job = function(_id, callback){
-		var job_id = _id;
+		let job_id = _id;
 		exports.get_crontab(job_id, function(job_db) {
-			var job_env_vars = exports.get_env();
-			var job_command  = job_db.command;
-			var job_mailing  = job_db.mailing;
-			var job_tag_name = [constants.name, constants.port, "runjob", job_id].join('-');
+			let job_env_vars = exports.get_env();
+			let job_command  = job_db.command;
+			let job_mailing  = job_db.mailing;
+			let job_name     = job_db.name;
+			let job_tag_name = [constants.name, constants.port, "runjob", job_id].join('-');
                         
-			var stderr = path.join(cronPath, job_tag_name + ".stderr");
-			var stdout = path.join(cronPath, job_tag_name + ".stdout");
-			var logjob = path.join(cronPath, job_tag_name + ".log");
-			var runjob = path.join(cronPath, job_tag_name + ".sh");
+			let stderr = path.join(cronPath, job_tag_name + ".stderr");
+			let stdout = path.join(cronPath, job_tag_name + ".stdout");
+			let logjob = path.join(cronPath, job_tag_name + ".log");
+			let runjob = path.join(cronPath, job_tag_name + ".sh");
 
-			var job_file_string = "";
+			let job_file_string = "";
 			if (job_env_vars) {
 				job_file_string = job_env_vars + "\n\n";
 			}
-			job_file_string += "#id: " + job_id + "\n";
+			job_file_string += "#id: " + job_id + " | " + job_name + "\n";
 			job_file_string += "set -o pipefail\n";
 		//	How do I save or redirect stdout and stderr into different files?
 		//		https://www.cyberciti.biz/faq/saving-stdout-stderr-into-separate-files/

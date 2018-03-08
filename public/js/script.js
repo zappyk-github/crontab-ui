@@ -66,7 +66,7 @@ function runJob(_id){
 		//infoMessageBox($("#env_vars").val(), "script: env:");
 		//infoMessageBox(job.command, "script: job:");
 		messageBox("<p> Do you want to run this Job? </p>", "Confirm run job", null, null, function(){
-			$.get(routes.run_job, {"job_id": _id, "job_env_vars": $("#env_vars").val(), "job_command": job.command, "job_mailing": job.mailing }, function(){
+			$.get(routes.run_job, {"job_id": _id, "job_env_vars": $("#env_vars").val(), "job_command": job.command, "job_mailing": job.mailing, "job_name": job.name }, function(){
 				location.reload();
 			});
 		});
