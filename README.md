@@ -55,7 +55,7 @@ Setting up with docker:
 git clone https://github.com/zappyk-github/crontab-ui.git
 cd crontab-ui
 docker build -t zappyk-github/crontab-ui .
-docker run -d -p 8000:8000 zappyk-github/crontab-ui --in-docker
+docker run -d -p 8000:8000 zappyk-github/crontab-ui
 ```
     
 ## Resources

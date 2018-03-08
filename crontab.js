@@ -123,30 +123,29 @@ exports.set_crontab = function(env_vars, callback){
 			}
 		});
 
-		if (process.argv.includes("--in-docker")){
-			fs.writeFile(exports.env_file, env_vars, function(err) {
-				if (err) callback(err);
-				// In docker we're running as the root user, so we need to write the file as root and not crontab
-			//	var fileName = "crontab"
-				var fileName = [constants.name, constants.port].join('-');
-				if(process.env.CRON_IN_DOCKER !== undefined) {
-					fileName = "root"
+		fs.writeFile(exports.env_file, env_vars, function(err) {
+			if (err) callback(err);
+			// In docker we're running as the root user, so we need to write the file as root and not crontab
+		//	var fileName = "crontab";
+			var fileName = [constants.name, constants.port].join('-');
+			if(process.env.CRON_IN_DOCKER !== undefined) {
+				fileName = "root";
+			}
+			fs.writeFile(path.join(cronPath, fileName), crontab_string, function(err) {
+				if (err) return callback(err);
+				/// In docker we're running crond using busybox implementation of crond
+				/// It is launched as part of the container startup process, so no need to run it again
+				if(process.env.CRON_IN_DOCKER === undefined) {
+				//	exec("crontab " + path.join(cronPath, "crontab"), function(err) {
+					exec("crontab " + path.join(cronPath, fileName), function(err) {
+						if (err) return callback(err);
+						else callback();
+					});
+				} else {
+					callback();
 				}
-				fs.writeFile(path.join(cronPath, fileName), crontab_string, function(err) {
-					if (err) return callback(err);
-					/// In docker we're running crond using busybox implementation of crond
-					/// It is launched as part of the container startup process, so no need to run it again
-					if(process.env.CRON_IN_DOCKER === undefined) {
-						exec("crontab " + path.join(cronPath, "crontab"), function(err) {
-							if (err) return callback(err);
-							else callback();
-						});
-					} else {
-						callback();
-					}
-				});
 			});
-		}
+		});
 	});
 };
 
@@ -184,11 +183,12 @@ exports.run_job = function(_id, callback){
 			var job_env_vars = exports.get_env();
 			var job_command  = job_db.command;
 			var job_mailing  = job_db.mailing;
+			var job_tag_name = [constants.name, constants.port, "runjob", job_id].join('-');
                         
-			var stderr = path.join(cronPath, job_id + "-runjob.stderr");
-			var stdout = path.join(cronPath, job_id + "-runjob.stdout");
-			var logjob = path.join(cronPath, job_id + "-runjob.log");
-			var runjob = path.join(cronPath, job_id + "-runjob.sh");
+			var stderr = path.join(cronPath, job_tag_name + ".stderr");
+			var stdout = path.join(cronPath, job_tag_name + ".stdout");
+			var logjob = path.join(cronPath, job_tag_name + ".log");
+			var runjob = path.join(cronPath, job_tag_name + ".sh");
 
 			var job_file_string = "";
 			if (job_env_vars) {
@@ -209,6 +209,12 @@ exports.run_job = function(_id, callback){
 			job_file_string += "exit $rt\n";
 			fs.writeFile(runjob, job_file_string, function(err) {
 				if (err) return callback(err);
+				console.log("Run job: " + runjob + "\n\t# " + job_env_vars.replace(/\n/g, "\n\t#") + "\n\t# " + job_command);
+				console.log("on date: " + new Date().toISOString());
+				exec("bash " + runjob, function(err) {
+					if (err) return callback(err);
+					else callback();
+				});
 			});
 		});
 };

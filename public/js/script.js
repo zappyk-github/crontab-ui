@@ -55,6 +55,35 @@ function startJob(_id){
 	});
 }
 
+/*** Solution 1 ***
+function runJob(_id){
+	var job = null;
+	crontabs.forEach(function(crontab){
+		if(crontab._id == _id)
+			job = crontab;
+	});
+	if(job){
+		//infoMessageBox($("#env_vars").val(), "script: env:");
+		//infoMessageBox(job.command, "script: job:");
+		messageBox("<p> Do you want to run this Job? </p>", "Confirm run job", null, null, function(){
+			$.get(routes.run_job, {"job_id": _id, "job_env_vars": $("#env_vars").val(), "job_command": job.command, "job_mailing": job.mailing }, function(){
+				location.reload();
+			});
+		});
+	} else {
+		infoMessageBox("<p> No job found with ID: </p><br />"+_id,"Warning");
+	}
+}
+*/
+/*** Solution 2 ***/
+function runJob(_id){
+	messageBox("<p> Do you want to run this Job? </p>", "Confirm run job", null, null, function(){
+		$.post(routes.run_job, {_id: _id}, function(){
+			location.reload();
+		});
+	});
+}
+
 function setCrontab(){
 	messageBox("<p> Do you want to set the crontab file? </p>", "Confirm crontab setup", null, null, function(){
 		$.get(routes.crontab, { "env_vars": $("#env_vars").val() }, function(){
@@ -114,7 +143,7 @@ function editJob(_id){
 		let name = $("#job-name").val();
 		let mailing = JSON.parse($("#job-mailing").attr("data-json"));
 		let logging = $("#job-logging").prop("checked");
-		$.post(routes.save, {name: name, command: job_command , schedule: schedule, _id: _id, logging: logging, mailing: mailing}, function(){
+		$.post(routes.save, {name: name, command: job_command, schedule: schedule, _id: _id, logging: logging, mailing: mailing}, function(){
 			location.reload();
 		});
 	});
@@ -143,7 +172,7 @@ function newJob(){
 		let name = $("#job-name").val();
 		let mailing = JSON.parse($("#job-mailing").attr("data-json"));
 		let logging = $("#job-logging").prop("checked");
-		$.post(routes.save, {name: name, command: job_command , schedule: schedule, _id: -1, logging: logging, mailing: mailing}, function(){
+		$.post(routes.save, {name: name, command: job_command, schedule: schedule, _id:  -1, logging: logging, mailing: mailing}, function(){
 			location.reload();
 		});
 	});
