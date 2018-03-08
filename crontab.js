@@ -88,13 +88,15 @@ exports.set_crontab = function(env_vars, callback){
 		}
 		tabs.forEach(function(tab){
 			if(!tab.stopped) {
-				let stderr = path.join(cronPath, tab._id + ".stderr");
-				let stdout = path.join(cronPath, tab._id + ".stdout");
-				let log_file = path.join(exports.log_folder, tab._id + ".log");
+				let tag_name = [constants.name, constants.port, tab._id].join('-');
+				let stderr = path.join(cronPath, tag_name + ".stderr");
+				let stdout = path.join(cronPath, tag_name + ".stdout");
+				let log_file = path.join(exports.log_folder, tag_name + ".log");
 
 				if(tab.command[tab.command.length-1] != ";") // add semicolon
 					tab.command +=";";
 
+				crontab_string += "\n#id: " + tab._id + " | " + tab.name + "\n";
 				/*** replaced ***
 				crontab_string += tab.schedule + " ({ " + tab.command + " } | tee " + stdout + ") 3>&1 1>&2 2>&3 | tee " + stderr;
 				*/
@@ -150,33 +152,6 @@ exports.set_crontab = function(env_vars, callback){
 };
 
 // run a job
-/*** Solution 1 ***
-exports.run_job = function(job_id, job_env_vars, job_command, job_mailing, job_name, callback){
-		var stderr = path.join(cronPath, job_id + "-runjob.stderr");
-		var stdout = path.join(cronPath, job_id + "-runjob.stdout");
-		var logjob = path.join(cronPath, job_id + "-runjob.log");
-		var runjob = path.join(cronPath, job_id + "-runjob.sh");
-		var job_file_string = "";
-		if (job_env_vars) {
-			job_file_string = job_env_vars + "\n\n";
-		}
-		job_file_string += "#id: " + job_id + " | " + job_name + "\n";
-		job_file_string += "set -o pipefail\n";
-	//	job_file_string += "(( ( " + job_command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 | tee " + stdout + ") > " + logjob + " 2>&1\n";
-		job_file_string += " ( ( " + job_command + " ) 2>&1 1>&3 | tee " + stderr + ") 3>&1 | tee " + stdout + "\n";
-		job_file_string += "rt=$?\n";
-		job_file_string += "\n";
-		if (job_mailing && JSON.stringify(job_mailing) != "{}"){
-			job_file_string += progNode + " " + __dirname + "/bin/crontab-ui-mailer.js " + job_id + " " + stdout + " " + stderr;
-			job_file_string += "\n";
-		}
-		job_file_string += "exit $rt\n";
-		fs.writeFile(runjob, job_file_string, function(err) {
-			if (err) return callback(err);
-		});
-};
-*/
-/*** Solution 2 ***/
 exports.run_job = function(_id, callback){
 		let job_id = _id;
 		exports.get_crontab(job_id, function(job_db) {
@@ -184,7 +159,7 @@ exports.run_job = function(_id, callback){
 			let job_command  = job_db.command;
 			let job_mailing  = job_db.mailing;
 			let job_name     = job_db.name;
-			let job_tag_name = [constants.name, constants.port, "runjob", job_id].join('-');
+			let job_tag_name = [constants.name, constants.port, job_id, "runjob"].join('-');
                         
 			let stderr = path.join(cronPath, job_tag_name + ".stderr");
 			let stdout = path.join(cronPath, job_tag_name + ".stdout");

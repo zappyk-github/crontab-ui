@@ -112,14 +112,6 @@ app.post(routes.remove, function(req, res) {
 });
 
 // run a job
-/*** Solution 1 ***
-app.get(routes.run_job, function(req, res) {
-	console.log("Run[ " + req.query.job_id + " ]=[ " + req.query.job_command + " ]");
-	crontab.run_job(req.query.job_id, req.query.job_env_vars, req.query.job_command, req.query.mailing);
-	res.end();
-});
-*/
-/*** Solution 2 ***/
 app.post(routes.run_job, function(req, res) {
 	crontab.run_job(req.body._id, function(err) {
 		if (err) console.error(err);
@@ -257,10 +249,7 @@ if (process.argv.includes("--https")){
   server = https.createServer(options, app);
   proto = 'https';
 }
-// app listen on port HTTP
-//app.listen(app.get('port'), app.get('host'), function() {
-// app listen on port HTTPS
-//server.listen(app.get('https_port'), app.get('https_host'), function() {
+// server listen
 server.listen(app.get('port'), app.get('host'), function() {
   console.log("[NodeJS version: " + process.versions.node + "]");
   fs.access(__dirname + "/crontabs/", fs.W_OK, function(err) {

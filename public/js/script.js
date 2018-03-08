@@ -55,27 +55,6 @@ function startJob(_id){
 	});
 }
 
-/*** Solution 1 ***
-function runJob(_id){
-	var job = null;
-	crontabs.forEach(function(crontab){
-		if(crontab._id == _id)
-			job = crontab;
-	});
-	if(job){
-		//infoMessageBox($("#env_vars").val(), "script: env:");
-		//infoMessageBox(job.command, "script: job:");
-		messageBox("<p> Do you want to run this Job? </p>", "Confirm run job", null, null, function(){
-			$.get(routes.run_job, {"job_id": _id, "job_env_vars": $("#env_vars").val(), "job_command": job.command, "job_mailing": job.mailing, "job_name": job.name }, function(){
-				location.reload();
-			});
-		});
-	} else {
-		infoMessageBox("<p> No job found with ID: </p><br />"+_id,"Warning");
-	}
-}
-*/
-/*** Solution 2 ***/
 function runJob(_id){
 	messageBox("<p> Do you want to run this Job? </p>", "Confirm run job", null, null, function(){
 		$.post(routes.run_job, {_id: _id}, function(){
