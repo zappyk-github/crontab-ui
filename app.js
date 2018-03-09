@@ -18,6 +18,8 @@ var constants = require("./constants").constants;
 // include the routes
 var routes = require("./routes").routes;
 
+var tag_name = [constants.name, (process.env.CUI_PORT || constants.port), ''].join('-');
+
 // set the view engine to ejs
 app.set('view engine', 'ejs');
 
@@ -38,12 +40,14 @@ app.set('views', __dirname + '/views');
 
 // set static users
 var auth_users = require('./config/' + (process.env.CUI_AUTH_USERS || constants.users)).auth_users;
+var role_users = require('./config/' + (process.env.CUI_AUTH_USERS || constants.users)).role_users;
 
 // configure basic auth
 var basic = auth.basic({
     realm: 'SUPER SECRET STUFF'
 }, function(username, password, callback) {
 	app.set('username', username);
+	app.set('userrole', role_users[username]);
 	console.log("Login username " + username)
 	callback(auth_users[username] == password);
 });
@@ -71,7 +75,8 @@ app.get(routes.root, authMiddleware, function(req, res) {
 			backups : crontab.get_backup_names(),
 			env : crontab.get_env(),
 			moment: moment,
-			username: app.get('username')
+			username: app.get('username'),
+			userrole: app.get('userrole')
 		});
 	});
 });
@@ -160,7 +165,8 @@ app.get(routes.restore_backup, function(req, res) {
 
 // export current crontab db so that user can download it
 app.get(routes.export, function(req, res) {
-	var file = __dirname + '/crontabs/crontab.db';
+//	var file = __dirname + "/crontabs/crontab.db";
+	var file = __dirname + "/crontabs/" + tag_name + "crontab.db";
 
 	var filename = path.basename(file);
 	var mimetype = mime.lookup(file);
@@ -177,7 +183,8 @@ app.post(routes.import, function(req, res) {
 	var fstream;
 	req.pipe(req.busboy);
 	req.busboy.on('file', function (fieldname, file, filename) {
-		fstream = fs.createWriteStream(__dirname + '/crontabs/crontab.db');
+	//	fstream = fs.createWriteStream(__dirname + "/crontabs/crontab.db");
+		fstream = fs.createWriteStream(__dirname + "/crontabs/" + tag_name + "crontab.db");
 		file.pipe(fstream);
 		fstream.on('close', function () {
 			crontab.reload_db();
@@ -194,7 +201,8 @@ app.get(routes.import_crontab, function(req, res) {
 
 // get the log file a given job. id passed as query param
 app.get(routes.logger, function(req, res) {
-	_file = crontab.log_folder +"/"+req.query.id+".log";
+//	_file = crontab.log_folder + "/" + req.query.id + ".log";
+	_file = crontab.log_folder + "/" + tag_name + req.query.id + ".log";
 	if (fs.existsSync(_file))
 		res.sendFile(_file);
 	else
@@ -262,7 +270,8 @@ server.listen(app.get('port'), app.get('host'), function() {
   // we do this by watching log file and setting a on change hook to it
   if (process.argv.includes("--autosave")){
     crontab.autosave_crontab(()=>{});
-    fs.watchFile(__dirname + '/crontabs/crontab.db', () => {
+  //fs.watchFile(__dirname + "/crontabs/crontab.db", () => {
+    fs.watchFile(__dirname + "/crontabs/" + tag_name + "crontab.db", () => {
       crontab.autosave_crontab(()=>{
         console.log("Attempted to autosave crontab");
       });
@@ -270,8 +279,10 @@ server.listen(app.get('port'), app.get('host'), function() {
   }
   if (process.argv.includes("--reset")){
     console.log("Resetting crontab-ui");
-    var crontabdb = __dirname + "/crontabs/crontab.db";
-    var envdb = __dirname + "/crontabs/env.db";
+  //var crontabdb = __dirname + "/crontabs/crontab.db";
+  //var envdb = __dirname + "/crontabs/env.db";
+    var crontabdb = __dirname + "/crontabs/" + tag_name + "crontab.db";
+    var envdb = __dirname + "/crontabs/" + tag_name + "env.db";
 
     console.log("Deleting " + crontabdb);
     try{

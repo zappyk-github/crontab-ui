@@ -13,6 +13,7 @@
 	var crontabs = [];
 	var routes = [];
 	var username = '';
+	var userrole = '';
 	$(function () {
 		// initialize tooltips
 		$('[data-toggle="tooltip"]').tooltip();
@@ -21,7 +22,8 @@
 		$("#env_vars").val(`<%- env  %>`);
 
 		username = '<%- username %>';
-		if (username === 'user') {
+		userrole = '<%- userrole %>';
+		if (userrole === 'user') {
 			$("#env_vars").attr('disabled', true);
 			$("[id*=btn_trash]").css('display', 'none');
                 }
@@ -72,7 +74,7 @@
 			<tr>
 		<% } else { %>
 		<!--	<tr style="background:#3A6DA6;color:#fff"> -->
-			<tr style="background:#96963C;color:#fff">
+			<tr style="background:#808080;color:#999999">
 		<% } %>
 				<td>
 					<%= index %>.

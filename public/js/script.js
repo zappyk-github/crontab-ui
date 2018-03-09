@@ -256,6 +256,64 @@ function setMailConfig(a){
 	});
 }
 
+// #############################################################################
+$.getScript("bowser.js", function() {
+	//alert("Script loaded but not necessarily executed.");
+});
+
+function _logout(secUrl, redirUrl) {
+    var logout = true;
+    if (bowser.msie) {
+        document.execCommand('ClearAuthenticationCache', 'false');
+    } else if (bowser.gecko || bowser.blink) {
+        $.ajax({
+            async: false,
+            url: secUrl,
+            type: 'GET',
+            username: 'logout'
+        });
+    } else if (bowser.webkit || bowser.chrome) {
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", secUrl, true);
+        xmlhttp.setRequestHeader("Authorization", "Basic logout");
+        xmlhttp.send();
+    } else {
+        logout = false;
+        alert("Logging out automatically is unsupported for " + bowser.name
+            + "\nYou must close the browser to log out.");
+    }
+    if (logout) {
+        console.log("Logout username " + username + " from browser " + bowser.name); // ...write in Console Javascript...
+        setTimeout(function () {
+            window.location.href = redirUrl;
+        }, 200);
+    }
+    /*
+    setTimeout(function () {
+        window.location.href = redirUrl;
+    }, 200);
+    */
+    return logout;
+}
+
+function doLogout(){
+	messageBox("<p> Do you want to logout? </p>", "Confirm logout", null, null, function(){
+	//	$.get(routes.logout, function(){
+	//		// TODO show only if success
+	//		infoMessageBox("Successfuly logout!","Information");
+	//	}).fail(function(response) {
+	//		errorMessageBox(response.statusText,"Error");
+	//	});
+		if (_logout(routes.root, routes.root)) {
+			infoMessageBox("Successfuly logout!","Information");
+			$.post(routes.logout, { "browser_name": bowser.name });
+		} else {
+			errorMessageBox(response.statusText,"Error");
+		};
+	});
+}
+// #############################################################################
+
 function setHookConfig(a){
 	messageBox("<p>Coming Soon</p>", "Hooks", null, null, null);
 }

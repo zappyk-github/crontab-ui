@@ -1,11 +1,15 @@
 /*jshint esversion: 6*/
 // include the constants
 var constants = require("./constants").constants;
+var tag_name = [constants.name, (process.env.CUI_PORT || constants.port), ''].join('-');
+
+var tag_names = { crontab: __dirname + "/crontabs/" + tag_name + "crontab.db",
+                  backups: __dirname + "/crontabs/" + tag_name + "backup: " };
 
 //load database
 var Datastore = require('nedb');
 var path = require("path");
-var db = new Datastore({ filename: __dirname + '/crontabs/crontab.db' });
+var db = new Datastore({ filename: tag_names['crontab'] });
 var cronPath = "/tmp";
 var progNode = constants.prog_node;
 
@@ -23,8 +27,8 @@ var exec = require('child_process').exec;
 var fs = require('fs');
 var cron_parser = require("cron-parser");
 
-exports.log_folder = __dirname + '/crontabs/logs';
-exports.env_file = __dirname + '/crontabs/env.db';
+exports.log_folder = __dirname + "/crontabs/logs";
+exports.env_file = __dirname + "/crontabs/" + tag_name + "env.db";
 
 crontab = function(name, command, schedule, stopped, logging, mailing){
 	var data = {};
@@ -224,11 +228,13 @@ exports.get_backup_names = function(){
 
 exports.backup = function(){
 	//TODO check if it failed
-	fs.createReadStream( __dirname + '/crontabs/crontab.db').pipe(fs.createWriteStream( __dirname + '/crontabs/backup ' + (new Date()).toString().replace("+", " ") + '.db'));
+//	fs.createReadStream( __dirname + '/crontabs/crontab.db').pipe(fs.createWriteStream( __dirname + '/crontabs/backup ' + (new Date()).toString().replace("+", " ") + '.db'));
+	fs.createReadStream(tag_names['crontab']).pipe(fs.createWriteStream(tag_names['backup'] + (new Date()).toString().replace("+", " ") + '.db'));
 };
 
 exports.restore = function(db_name){
-	fs.createReadStream( __dirname + '/crontabs/' + db_name).pipe(fs.createWriteStream( __dirname + '/crontabs/crontab.db'));
+//	fs.createReadStream( __dirname + '/crontabs/' + db_name).pipe(fs.createWriteStream( __dirname + '/crontabs/crontab.db'));
+	fs.createReadStream(__dirname + '/crontabs/' + db_name).pipe(fs.createWriteStream(tag_names['crontab']));
 	db.loadDatabase(); // reload the database
 };
 
