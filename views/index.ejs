@@ -23,7 +23,8 @@
 
 		username = '<%- username %>';
 		userrole = '<%- userrole %>';
-		if (userrole === 'user') {
+		if ((userrole === 'admin') ||
+                    (userrole === 'user')) {
 			$("#env_vars").attr('disabled', true);
 			$("[id*=btn_trash]").css('display', 'none');
                 }

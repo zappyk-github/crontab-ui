@@ -4,7 +4,7 @@ var constants = require("./constants").constants;
 var tag_name = [constants.name, (process.env.CUI_PORT || constants.port), ''].join('-');
 
 var tag_names = { crontab: __dirname + "/crontabs/" + tag_name + "crontab.db",
-                  backups: __dirname + "/crontabs/" + tag_name + "backup: " };
+                  backups: __dirname + "/crontabs/" + tag_name + "backups/backup of: " };
 
 //load database
 var Datastore = require('nedb');
@@ -201,19 +201,23 @@ exports.run_job = function(_id, callback){
 
 exports.get_backup_names = function(){
 	var backups = [];
-	fs.readdirSync(__dirname + '/crontabs').forEach(function(file){
+//	var bakname = "backup";
+	var bakname = path.basename(tag_names['backups']);
+        var bakpath = path.dirname(tag_names['backups']);
+//	fs.readdirSync(__dirname + '/crontabs').forEach(function(file){
+	fs.readdirSync(bakpath).forEach(function(file){
 		// file name begins with backup
-		if(file.indexOf("backup") === 0){
+		if(file.indexOf(bakname) === 0){
 			backups.push(file);
 		}
 	});
 
 	// Sort by date. Newest on top
 	for(var i=0; i<backups.length; i++){
-		var Ti = backups[i].split("backup")[1];
+		var Ti = backups[i].split(bakname)[1];
 		Ti = new Date(Ti.substring(0, Ti.length-3)).valueOf();
 		for(var j=0; j<i; j++){
-			var Tj = backups[j].split("backup")[1];
+			var Tj = backups[j].split(bakname)[1];
 			Tj = new Date(Tj.substring(0, Tj.length-3)).valueOf();
 			if(Ti > Tj){
 				var temp = backups[i];
@@ -228,12 +232,16 @@ exports.get_backup_names = function(){
 
 exports.backup = function(){
 	//TODO check if it failed
-//	fs.createReadStream( __dirname + '/crontabs/crontab.db').pipe(fs.createWriteStream( __dirname + '/crontabs/backup ' + (new Date()).toString().replace("+", " ") + '.db'));
-	fs.createReadStream(tag_names['crontab']).pipe(fs.createWriteStream(tag_names['backup'] + (new Date()).toString().replace("+", " ") + '.db'));
+	var bakname = tag_names['backups'] + (new Date()).toString().replace("+", " ") + '.db';
+        var bakpath = path.dirname(bakname);
+	if (!fs.existsSync(bakpath)){
+		fs.mkdirSync(bakpath);
+	}
+	console.log("Create %s", path.basename(bakname));
+	fs.createReadStream(tag_names['crontab']).pipe(fs.createWriteStream(bakname));
 };
 
 exports.restore = function(db_name){
-//	fs.createReadStream( __dirname + '/crontabs/' + db_name).pipe(fs.createWriteStream( __dirname + '/crontabs/crontab.db'));
 	fs.createReadStream(__dirname + '/crontabs/' + db_name).pipe(fs.createWriteStream(tag_names['crontab']));
 	db.loadDatabase(); // reload the database
 };

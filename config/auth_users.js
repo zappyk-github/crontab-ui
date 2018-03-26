@@ -3,3 +3,8 @@ exports.auth_users = {
         "user"  : "l0s3r",
         "admin" : "secret",
 };
+exports.role_users = {
+        "root"  : null,
+        "user"  : "user",
+        "admin" : "admin",
+};

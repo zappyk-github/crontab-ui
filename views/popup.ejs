@@ -1,3 +1,15 @@
+<script type="text/javascript">
+	var username = '';
+	var userrole = '';
+	$(function () {
+		username = '<%- username %>';
+		userrole = '<%- userrole %>';
+		if (userrole === 'user') {
+		//	$("[id*=job-command]").css('display', 'none');
+			$("#job-command").attr('disabled', true);
+                }
+	})
+</script>
 <!-- Job -->
 <div class="modal fade" id="job">
   <div class="modal-dialog">

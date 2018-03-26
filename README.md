@@ -43,6 +43,8 @@ On deafult, you set accounts on file `config/auth_users.js`, but if you want pas
 
     CUI_AUTH_USERS=auth_users_custom crontab-ui
 
+Furthermore, if the user has the "user" role, operability is limited.
+
 Also, you may have to **set permissions** for your `node_modules` folder. Refer [this](https://docs.npmjs.com/getting-started/fixing-npm-permissions).
 
 If you need to autosave your changes to crontab directly:
